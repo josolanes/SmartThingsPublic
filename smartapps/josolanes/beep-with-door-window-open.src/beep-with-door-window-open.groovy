@@ -26,8 +26,13 @@ definition(
 
 preferences {
 	section("Log devices...") {
-        input "contact", "capability.contactSensor", title: "Contact", required:true, multiple: true
-        input "siren", "capability.tone", title: "Siren", required:true, multiple: true
+        input "doors", "capability.contactSensor", title: "Doors", required:false, multiple:true
+        input "beepDoors", "number", title: "Door Open Beep (1-5)", required:true, multiple:false
+        input "windows", "capability.contactSensor", title: "Windows", required:false, multiple:true
+        input "beepWindows", "number", title: "Window Open Beep (1-5)", required:true, multiple:false
+        input "presence", "capability.presenceSensor", title: "Presence", required:false, multiple:true
+        input "beepPresence", "number", title: "Arrival Beep (1-5)", required:true, multiple:false
+        input "siren", "capability.tone", title: "Siren", required:true, multiple:true
     }
 }
 
@@ -47,13 +52,113 @@ def updated() {
 }
 
 def initialize() {
-	subscribe(contact, "contact", handleEvent)
+	try {
+        if(settings.beepDoors < 1 || settings.beepDoors > 5) {
+            httpError(501, "Door Open Beep can only be between 1 and 5, $settings.beepDoors is an invalid value")
+        }
+
+        if(settings.beepWindows < 1 || settings.beepWindows > 5) {
+            httpError(501, "Window Open Beep can only be between 1 and 5, $settings.beepWindows is an invalid value")
+        }
+
+        if(settings.beepPresence < 1 || settings.beepPresence > 5) {
+            httpError(501, "Arrival Beep can only be between 1 and 5, $settings.beepPresence is an invalid value")
+        }
+
+        log.info("Subscribing to doors")
+        subscribe(doors, "contact", handleDoorContactEvent)
+
+        log.info("Subscribing to windows")
+        subscribe(windows, "contact", handleWindowContactEvent)
+
+        log.info("Subscribing to presence")
+        subscribe(presence, "presence", handlePresenceEvent)
+    }
+    catch (e) {
+    	log.error("Exception caught", e)
+    }
 }
 
-def handleEvent(evt) {
-if(evt.value == "open")
-    {
-    	siren.customBeep1()
+def handleDoorContactEvent(evt) {
+	log.info("--------------------------------")
+
+	try {
+        log.info("Door $evt.name $evt.value")
+
+        if(evt.value == "open") {
+            beep(settings.beepDoors)
+        }
+    }
+    catch (e) {
+    	log.error("Caught exception", e)
+    }
+}
+
+def handleWindowContactEvent(evt) {
+	log.info("--------------------------------")
+
+	try {
+        log.info("Window $evt.name $evt.value")
+
+        if(evt.value == "open") {
+            beep(settings.beepWindows)
+        }
+    }
+    catch (e) {
+    	log.error("Caught exception", e)
+    }
+}
+
+def handlePresenceEvent(evt) {
+	log.info("--------------------------------")
+
+	try {
+        log.info("Presence device $evt.name $evt.value")
+
+        if(evt.value != "not present") {
+            beep(settings.beepPresence)
+        }
+    }
+    catch (e) {
+    	log.error("Caught exception", e)
+    }
+}
+
+def beep(Integer beepNum) {
+	try {
+        switch(beepNum) {
+            case 1:
+                log.info("Beeping customBeep1")
+
+                siren.customBeep1()
+                break
+            case 2:
+                log.info("Beeping customBeep2")
+
+                siren.customBeep2()
+                break
+            case 3:
+                log.info("Beeping customBeep3")
+
+                siren.customBeep3()
+                break
+            case 4:
+                log.info("Beeping customBeep4")
+
+                siren.customBeep4()
+                break
+            case 5:
+                log.info("Beeping customBeep5")
+
+                siren.customBeep5()
+                break
+            default:
+                httpError(501, "Invalid beep number selected ($beepNum)")
+        }
+
         siren.stop()
+    }
+    catch (e) {
+    	log.error("Caught exception", e)
     }
 }
