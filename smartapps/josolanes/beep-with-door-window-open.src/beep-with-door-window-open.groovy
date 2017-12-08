@@ -155,8 +155,6 @@ def beep(Integer beepNum) {
             default:
                 httpError(501, "Invalid beep number selected ($beepNum)")
         }
-
-        siren.stop()
     }
     catch (e) {
     	log.error("Caught exception", e)
